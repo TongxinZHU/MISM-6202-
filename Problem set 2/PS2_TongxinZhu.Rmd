@@ -1,0 +1,381 @@
+---
+title: 'Business Analytics :: PS2'
+author: "Tongxin Zhu"
+output:
+  pdf_document: default
+  html_document: default
+fontsize: 11pt
+---
+
+### 1. Linear Regression 1
+
+##### 1.1
+
+```{r eval=TRUE}
+knitr::opts_chunk$set(error = TRUE)
+# Read data
+data1 <- read.csv("~/Desktop/PS2_EX1_Data Set.csv")  
+# Fit the linear regression model for first forty rows
+fit1.1 <- lm(y ~ x1 + x2, data = data1[1:40, ])
+# Summarize the model 
+summary(fit1.1)
+# Plot the model
+plot(fit1.1)
+```
+
+Based on the summary of fit1, we can conclude that x2 is statistical significant for predicting y value since the standard error value of x2 is small in comparison to the coefficient, and the p-value of x2 is smaller than 0.05. The adjusted R-squared value is about 15% which means the model explains 15% of the variability of the response data around its mean which is relative low, so our model is not fitting the data very well. 
+
+##### 1.2
+
+```{r eval = TRUE}
+# update.packages("ggplot2")
+# install.packages("scales")
+library(ggplot2)
+# Plot the estimated model
+p1.2 <- ggplot(data1, aes(x1, y, color = x2)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+# Add title and labels
+p1.2 + labs(title="Estimated model",
+        x ="x1", y = "y")
+# Plot the model
+plot(fit1.1)
+```
+
+##### 1.3
+
+```{r eval=TRUE}
+# Predict response variables of rest rows
+prediction <- predict(fit1.1, data1[41:60, ])
+prediction
+```
+
+I am not confident about these results because the R squared value we got from the first step is not high which means this model does not fit our dataset very well.
+
+### 2. Linear Regression 2
+
+##### 2.1
+
+```{r eval=TRUE}
+# Simulate two variables randomly
+set.seed(100)
+var1 <- rnorm(1000, 1, 2)
+```
+
+##### 2.2
+
+```{r eval=TRUE}
+var2 <- rnorm(1000, 1, 2)
+```
+
+##### 2.3
+
+```{r eval=TRUE}
+# Fit the linear regression model
+fit2.3 <- lm(var1 ~ var2)
+summary(fit2.3)
+```
+
+##### 2.4
+
+Based on the summary from 2.2, we can conclude that var2 is not statistical significant for predicting var1 since the p-value of var2 is not less than 0.05, the 5% significance level. Moreover, The standard error value is even larger than the estimate value. The multiple R-squared value is super small which means this model does not fit the dataset well.
+
+##### 2.5
+
+The multiple R-squared value measures the strength of the relationship between the model and the dependent variable on a convenient 0-100% scale. For example, if R-squared value is 100%, the variation of dependent value can be explained by the variation of independent variable completely. So, based on the results we got from last step, we can conclude that 0.019% variation the model can explain.
+
+### 3. Linear Regression 3
+
+##### 3.1
+
+```{r eval=TRUE}
+# The Manhattan Housing data contains missing values indicated by "0" 
+# so we are using the argument na.strings="0" to treat them as missing values.
+# Read dataset
+data2 <- read.csv("~/Desktop/Rolling_Sales_Manhattan_Data Set_ver4.csv")  
+head(data2)
+# Check the structure of dataset
+dim(data2)
+```
+
+The dataset has 15156 rows and 7 columns. The dataset lists properties that sold in last twelve month period in Manhattan for tax class 1, 2, 3, and 4. Each row represents the property has been sold, and each column represents the neighborhood name, total unit number, land area, total area, year the property built, tax class based on the use of property, and price paid for the property.
+
+##### 3.2
+
+```{r eval=TRUE}
+# Make SalePrice looks more normal distributed
+data2$newSalePrice <- log(data2$SalePrice)
+# Plot histogram of SalePrice to check the distribution
+q <- ggplot(data2, aes(newSalePrice)) +
+  geom_histogram(aes(y = ..density..), bins = 10) +
+  geom_function(fun = dnorm, args = list(mean = mean(data2$newSalePrice), sd = sd(data2$newSalePrice, na.rm = FALSE)), color = "red") 
+q + ggtitle("Histogram of log(SalePrice)") +
+  xlab("Price") + ylab("Density")
+# Fit the linear regression model 
+# I think all variables can effect the price since different neighbor has different price range; properties with larger unit numbers should be more expensive; both land area and total area should have positive relationship with price; the newer the building that the property belongs to, the higher price; tax class can also effect the price since if the property was bought by a company, the price should be larger than a personal property. Since the Neighborhood and TaxClass are not numerical, I did not include them in this step. 
+fit3.2 <- lm(newSalePrice ~ TotalUnits + LandSqFt + GrossSqFt + YearBuilt, data = data2)
+summary(fit3.2)
+```
+Some parts of results do not make sense since LandSqFt cannot have negitive relationship with SalePrice. Same as YearBuilt. So I analyzed each of them individually shown as following:
+
+```{r eval=TRUE}
+fit3.2unit <- lm(newSalePrice ~ TotalUnits, data = data2)
+summary(fit3.2unit)
+fit3.2land <- lm(newSalePrice ~ LandSqFt, data = data2)
+summary(fit3.2land)
+fit3.2gross <- lm(newSalePrice ~ GrossSqFt, data = data2)
+summary(fit3.2gross)
+fit3.2year <- lm(newSalePrice ~ YearBuilt, data = data2)
+summary(fit3.2year)
+```
+
+From the results above we can conclude following:
+1. TotalUnits is positive relevant to SalePrice. For every one unit increase in unit number, price increases by 0.1690427%. TolUnits is statistical signifant in predicting SalePrice.
+2. LandSqFt is positive relevant to SalePrice. For every one unit increase in land area, price increases by  0.0005325014%. LandSqFt is statistical signifant in predicting SalePrice.
+3. GrossSqFt is positive relevant to SalePrice. For every one unit increase in total area, price increases by 0.0002001002%. GrossSqFt is statistical signifant in predicting SalePrice.
+4. YearBuilt is negative relevant to SalePrice. For every one unit increase in Year the property was built, price decreases by 0.005809169%. YearBuilt is statistical signifant in predicting SalePrice. This conclusion is contrary to my hypothesis since it means the older the strutures of a property was built, the more expensive the property is. 
+
+##### 3.3
+
+```{r eval=TRUE}
+# unique(data2$Neighborhood)
+# unique(data2$SalePrice)
+# install.packages("dplyr")
+library(dplyr)
+# Use group by to analyze the average price of properties of each neighborhood
+grp_neighborhood = data2 %>% group_by(Neighborhood)  %>%
+                    summarise(avg_price = mean(SalePrice),
+                              .groups = 'drop')
+# Ascending order of average price
+grp_neighborhood <- grp_neighborhood[order(grp_neighborhood$avg_price), ]
+print(grp_neighborhood)
+```
+We can check which neighborhood we can afford based on the table above, and from the analysis from last step, if our own price range is not high, we also can choose some properties with low area and unit numbers or properties that the structures were built later. 
+
+##### 3.4
+
+We are using linear regression in this problem because the response variable is quantitative. Liner regression model can help us to find the relationship between price and other variables to find appropriate properties. 
+
+##### 3.5
+
+As a city planner, I can know which neighborhood has the lowest or highest average pricing, and I will get information of some common features of these properties belong to different neighborhood. For example, I can go investigate whether the cheapest community is also poor in natural environment and living convenience of residents. Then I will use this data to improve the whole city look. Also, since we know older properties tend to value more, I would suggest government to check and repair these old houses to ensure the safety and facilities are perfect.
+
+### 4. Linear Regression 4
+
+##### 4.1
+
+```{r eval=TRUE}
+data3 <- read.csv("~/Desktop/Auto.csv")
+fit4.1 <- lm(mpg ~ cylinders + weight + year, data = data3)
+summary(fit4.1)
+```
+
+##### 4.2
+
+From the summary above, we can conclude that weight and year are statistical significant for predicting mpg since their p-value are smaller than 0.05.
+
+##### 4.3
+
+```{r eval=TRUE}
+fit4.3 <- lm(cylinders ~ weight + year, data = data3)
+summary(fit4.3)
+```
+
+From the summary above, we can conclude that both weight and year are significant in predicting cylinders which means cylinders, weight, and year are highly correlated. Thus, these three variables are not independent with each other as they cannot predict mpg accurately.
+
+##### 4.4
+Based on the results above, I will not include variable cylinders in predicting mpg to avoid collinearity since it reduces the accuracy of our model.
+
+### 5. Linear Regression 5
+
+##### 5.1
+
+The coefficient of age is positive which means the older the house is, the higher the price it worth. The p-value, 0.00 is smaller than 0.05, so age is statistical significant for predicting value.
+
+##### 5.2
+
+I thought of several reasons making older house more expensive:
+1. Older houses tend to be located in more established areas.
+2. Older houses always have stronger sense of community.
+3. Some architectural styles are not replicated now.
+4. Some older houses come with larger yards.
+5. Owners are not willing to sell their historic houses.
+
+##### 5.3
+
+I would suggest my intern to include following characteristics of houses:
+1. Inside area and yard area
+2. How established, convenient, completed the location of the house is
+3. Material for building the house and inside structures
+4. Room numbers and space utilization
+I will also suggest my intern to analyze how independent these variables are to avoid collinearity
+
+### 6. Support-Vector Machines
+
+##### 6.1
+
+```{r eval=TRUE}
+# install.packages('plyr', repos = "http://cran.us.r-project.org")
+# install.packages( c("e1071", "kernlab") )
+library(e1071)
+library(kernlab)
+data(spam)
+dim(spam)
+head(spam)
+?spam
+set.seed(02115)
+sample <- sample( c(TRUE, FALSE), nrow(spam), replace=TRUE)
+train <- spam[sample,]
+test <- spam[!sample,]
+```
+
+##### 6.2
+
+```{r eval=TRUE}
+library(e1071)
+# Fit the support vector machine model on the training data
+fit6.2 <- svm(type ~ ., data = train, type='C-classification', kernel='linear', scale = FALSE)
+```
+
+##### 6.3
+
+```{r eval=TRUE}
+# Use our model to predict on the testing data
+pred_value <- predict(fit6.2, test)
+true_value <- test$type
+# Make a confusion matrix
+tt <- table(pred_value, true_value)
+tt
+# Calculate the error rate
+error_rate <- (tt[1,2] + tt[2,1])/nrow(test)
+error_rate
+```
+
+The classification error rate is 9%.
+
+##### 6.4
+
+```{r eval=TRUE}
+# Change the kernal and cost of new model
+fit6.4 <- svm(type ~ ., data = train, type='C-classification', kernel='sigmoid', cost = 100, scale = FALSE)
+# Predict using new model
+new_pred_value <- predict(fit6.4, test)
+new_true_value <- test$type
+# Calculate updated error rate
+tt <- table(new_pred_value, new_true_value)
+tt
+new_error_rate <- (tt[1,2] + tt[2,1])/nrow(test)
+new_error_rate
+```
+
+The updated classification error rate is 66%. The updated error rate is much larger than the original suggests me the updated cost is very large which leads to a narrower margin leading to more misclassifications because there will be less support vectors on the or violating the margin. Also, we changed kernal leads to a larger error suggests that sigmoid is not proper to this dataset.
+
+##### 6.5
+
+I think interpreting svm result is much harder than regression model since svm summary does not provide sophisticated and interpretable reports. For example, svm does not provide p-value or R squared value so we cannot know how significant a predictor is or how well the model perform; it does not provide if the dependent variable is positive or negative to independent variables; however, regression model can provide these information to help us analyze. Also the cost of svm is much larger and it is very easy to overfit. So in conclusion, svm is harder to interpret than regression model.
+
+##### 6.6
+
+```{r eval=TRUE}
+library(tree)
+set.seed(2022)
+kFolds <- 10
+folds <- sample(1:kFolds, nrow(spam), replace = TRUE)
+table(folds)
+results <- data.frame( Fold = 1:kFolds, HoldoutAccuracy = NA)
+for(i in 1:kFolds) {
+  train <- spam[ ! folds == i,]  
+  test  <- spam[ folds == i,]   
+  fit6.5 <- tree(type ~ . ,data = train)  
+  fit6.5.2 <- predict(fit6.5, test, type = "class")  
+  tab <- table(fit6.5.2, test$type) 
+  result$HoldoutAccuracy[i] <- (tab[1,1] + tab[2,2]) / nrow(test)}
+result
+# ?tune
+bestpar <- tune(svm, type ~ ., data = spam, 
+              ranges = list(gamma = 2^(-1:1), cost = 2^(2:4)),
+              tunecontrol = tune.control(sampling = "fix")
+             )
+summary(bestpar)
+plot(bestpar)
+```
+
+### 7. Clustering & PCA
+
+##### 7.1
+
+```{r eval=TRUE}
+data4 <- read.csv("~/Desktop/Mall_Customers.csv")  
+# Drop CustomerID
+data4$CustomerID <- NULL
+# Change Gender variavle to binary since string values cannot be used in clustering
+data4$Gender <- ifelse(data4$Gender == "Male", 1, 0)
+head(data4)
+# Fit k-means clustering model with k=3
+fit7.1 <- kmeans(data4, centers = 3, nstart = 20)
+fit7.1$cluster
+# install.packages("factoextra")
+library(factoextra)
+fviz_cluster(fit7.1, data = data4,
+             geom = "point",
+             ellipse.type = "convex", 
+             ggtheme = theme_bw()
+             )
+```
+
+##### 7.2
+
+```{r eval=TRUE}
+Within_cluster_sum <- numeric(15)
+# Use for loop to perform k-means with different k values
+for(i in 1:15)
+{
+  #Extract total with-in cluster sum of square
+  Within_cluster_sum[i] <- kmeans(data4, centers = i, nstart = 20)$tot.withinss  
+}
+cbind(No.of.Cluters = 1:15, Within_cluster_sum)
+# Plot number of clusters with total WSS
+plot(1:15, Within_cluster_sum, type="b", xlab = "Number of clusters", ylab = "Total WSS", main = "Scree Plot")
+```
+I suggest to use 6 clusters to group our customers since the proper elbow is at 6 which means the larger k value will not increase efficiency.
+
+##### 7.3
+
+```{r eval=TRUE}
+# PCA analysis
+pcaFit <- prcomp(data4, scale = TRUE)
+pcaFit$rotation <- -pcaFit$rotation
+# Check PCs
+pcaFit$rotation
+biplot(pcaFit, scale=0)
+var_explained = pcaFit$sdev^2 / sum(pcaFit$sdev^2)
+var_explained
+qplot(c(1:4), var_explained) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("Scree Plot") +
+  ylim(0, 1)
+```
+PC1 has large positive associations with Age and large negative associations with SpendingScore, so PC1 can be named as Spending_Ability.
+PC2 has large negative association with AnnualIncome and large negative associations with Gender, so PC2 can be named as Financial_Stability.
+
+##### 7.4
+
+```{r eval=TRUE}
+# Subset a new dataset with columns AnnualIncome and SpendingScore since these two should be the first two important variables
+newdataset <- data4[ , -c(1, 2)]
+fit7.4 <- kmeans(newdataset, centers = 6, nstart = 20)
+fit7.4$cluster
+newdataset$color <- as.factor(fit7.4$cluster)
+# Cluster customers by AnnualIncome and SpendingScore
+ggplot(newdataset, aes(x = AnnualIncome, y = SpendingScore, color = color)) +
+  geom_point()
+```
+
+The cluster at right top coner should be the most valuable customers.
+
+
+
+
+
